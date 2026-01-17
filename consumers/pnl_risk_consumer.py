@@ -1,33 +1,48 @@
-from kafka import KafkaConsumer, KafkaProducer
+import sys
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
+
+from confluent_kafka import Consumer, Producer
 import sqlite3
 import json
-import pathlib
 import datetime
 
-# Paths
-DB_PATH = pathlib.Path(__file__).parent.parent / "db" / "trades.db"
-DB_PATH.parent.mkdir(exist_ok=True)  # ensure db folder exists
-
-# Kafka setup
-BOOTSTRAP_SERVERS = "localhost:9092"
-CONSUME_TOPIC = "enriched-trades"
-REPORT_TOPIC = "reports"
-
-# Consumer for enriched trades
-consumer = KafkaConsumer(
-    CONSUME_TOPIC,
-    bootstrap_servers=BOOTSTRAP_SERVERS,
-    auto_offset_reset="latest",
-    value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-    group_id="pnl_risk_group",
-    enable_auto_commit=True
+from config import (
+    setup_logger,
+    get_consumer_config,
+    get_producer_config,
+    DB_PATH,
+    TOPIC_ENRICHED_TRADES,
+    TOPIC_REPORTS,
+    CONSUMER_GROUP_PNL_RISK,
+    CONSUMER_ID_PNL_RISK,
+    PRODUCER_ID_PNL_RISK
 )
 
-# Producer for reports
-report_producer = KafkaProducer(
-    bootstrap_servers=BOOTSTRAP_SERVERS,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+# Setup logger
+logger = setup_logger("pnl_risk", "pnl_risk.log")
+
+# Consumer configuration
+consumer_conf = get_consumer_config(
+    group_id=CONSUMER_GROUP_PNL_RISK,
+    client_id=CONSUMER_ID_PNL_RISK,
+    auto_offset_reset="latest"
 )
+
+# Producer configuration
+producer_conf = get_producer_config(client_id=PRODUCER_ID_PNL_RISK)
+
+# Create Consumer instance
+consumer = Consumer(consumer_conf)
+consumer.subscribe([TOPIC_ENRICHED_TRADES])
+
+# Create Producer instance for reports
+report_producer = Producer(producer_conf)
+
+def delivery_report(err, msg):
+    """Callback to confirm delivery or error"""
+    if err is not None:
+        logger.error(f"Report delivery failed: {err}")
 
 # SQLite DB setup
 conn = sqlite3.connect(DB_PATH)
@@ -51,7 +66,7 @@ CREATE TABLE trades (
 )
 """)
 conn.commit()
-print("✅ Database table created/recreated with correct schema")
+logger.info("Database table created/recreated with correct schema")
 
 # Running positions and PnL
 positions = {}
@@ -103,16 +118,25 @@ def generate_trade_summary_report(trade):
         }
     }
 
-print("🚀 PnL + Risk Consumer started... Listening for trades on 'enriched-trades'.")
-print("📊 Publishing reports to 'reports' topic.")
-print("💡 Processing and waiting for trades...")
+logger.info(f"PnL + Risk Consumer started [ID: {CONSUMER_ID_PNL_RISK}]")
+logger.info(f"Consuming from: {TOPIC_ENRICHED_TRADES} -> Publishing to: {TOPIC_REPORTS}")
 
 try:
     message_count = 0
-    for msg in consumer:
+    while True:
+        msg = consumer.poll(timeout=1.0)
+        
+        if msg is None:
+            continue
+        
+        if msg.error():
+            logger.error(f"Consumer error: {msg.error()}")
+            continue
+        
         message_count += 1
-        trade = msg.value
-        print(f"🔥 Received enriched trade #{message_count}: {trade}")
+        # Deserialize message
+        trade = json.loads(msg.value().decode('utf-8'))
+        logger.info(f"Received enriched trade #{message_count}: trade_id={trade.get('trade_id')}, symbol={trade.get('symbol')}")
 
         # Insert trade into DB
         cur.execute("""
@@ -139,33 +163,44 @@ try:
         # Update global metrics
         total_volume += trade["trade_value"]
         trade_count += 1
-
-        print(f"📊 Positions: {positions}")
-        print(f"💰 PnL: {pnl}")
+        
         
         # Generate and send reports to Kafka
         # 1. Trade summary report (for each trade)
         trade_report = generate_trade_summary_report(trade)
-        report_producer.send(REPORT_TOPIC, trade_report)
+        report_producer.produce(
+            topic=TOPIC_REPORTS,
+            value=json.dumps(trade_report).encode('utf-8'),
+            callback=delivery_report
+        )
         
         # 2. Position report (every trade)
         position_report = generate_position_report()
-        report_producer.send(REPORT_TOPIC, position_report)
+        report_producer.produce(
+            topic=TOPIC_REPORTS,
+            value=json.dumps(position_report).encode('utf-8'),
+            callback=delivery_report
+        )
         
         # 3. PnL report (every 3 trades or can be customized)
         if message_count % 3 == 0:
             pnl_report = generate_pnl_report()
-            report_producer.send(REPORT_TOPIC, pnl_report)
-            print("📈 Sent comprehensive PnL report to Kafka")
+            report_producer.produce(
+                topic=TOPIC_REPORTS,
+                value=json.dumps(pnl_report).encode('utf-8'),
+                callback=delivery_report
+            )
+            logger.info("Sent comprehensive PnL report to Kafka")
         
-        # Flush reports
+        # Trigger delivery callbacks and flush reports
+        report_producer.poll(0)
         report_producer.flush()
-        print("📤 Reports sent to Kafka topic 'reports'")
-        print("--------------------------------------------------")
+        logger.info(f"Reports sent to Kafka topic '{TOPIC_REPORTS}'")
 
 except KeyboardInterrupt:
-    print("Stopping consumer...")
+    logger.info("Stopping consumer...")
 finally:
-    report_producer.close()
+    report_producer.flush()
     consumer.close()
     conn.close()
+    logger.info("Consumer closed")

@@ -1,29 +1,52 @@
-from kafka import KafkaConsumer, KafkaProducer
+import sys
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
+
+from confluent_kafka import Consumer, Producer
 import json
 import datetime
 
-# Simplified Kafka config - using direct connection
-BOOTSTRAP_SERVERS = "localhost:9092"
-
-# Consumer listens to 'trades'
-consumer = KafkaConsumer(
-    "trades",
-    bootstrap_servers=BOOTSTRAP_SERVERS,
-    auto_offset_reset="earliest",
-    value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-    group_id="validation_group"  # Added consumer group
+from config import (
+    setup_logger,
+    get_consumer_config,
+    get_producer_config,
+    TOPIC_TRADES,
+    TOPIC_ENRICHED_TRADES,
+    CONSUMER_GROUP_VALIDATION,
+    CONSUMER_ID_VALIDATION,
+    PRODUCER_ID_ENRICHMENT
 )
 
-# Producer publishes to 'enriched-trades'
-producer = KafkaProducer(
-    bootstrap_servers=BOOTSTRAP_SERVERS,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+# Setup logger
+logger = setup_logger("validation_enrichment", "validation_enrichment.log")
+
+# Consumer configuration
+consumer_conf = get_consumer_config(
+    group_id=CONSUMER_GROUP_VALIDATION,
+    client_id=CONSUMER_ID_VALIDATION,
+    auto_offset_reset="earliest"
 )
+
+# Producer configuration
+producer_conf = get_producer_config(client_id=PRODUCER_ID_ENRICHMENT)
+
+# Create Consumer instance
+consumer = Consumer(consumer_conf)
+consumer.subscribe([TOPIC_TRADES])
+
+# Create Producer instance
+producer = Producer(producer_conf)
+
+def delivery_report(err, msg):
+    """Callback to confirm delivery or error"""
+    if err is not None:
+        logger.error(f"Delivery failed: {err}")
 
 def validate_and_enrich(trade):
+    """Validate and enrich trade data"""
     # Basic validation - using correct field names
     if not trade.get("symbol") or trade.get("quantity", 0) <= 0 or trade.get("price", 0) <= 0:
-        print(f"❌ Invalid trade skipped: {trade}")
+        logger.warning(f"Invalid trade skipped: {trade}")
         return None
 
     # Enrichment
@@ -34,22 +57,38 @@ def validate_and_enrich(trade):
 
     return trade
 
-print("🚀 Validation & Enrichment Consumer started...")
+logger.info(f"Validation & Enrichment Consumer started [ID: {CONSUMER_ID_VALIDATION}]")
+logger.info(f"Consuming from: {TOPIC_TRADES} -> Publishing to: {TOPIC_ENRICHED_TRADES}")
 
 try:
-    for message in consumer:
-        trade = message.value
-        print(f"🔥 Received trade: {trade}")
+    while True:
+        msg = consumer.poll(timeout=1.0)
+        
+        if msg is None:
+            continue
+        
+        if msg.error():
+            logger.error(f"Consumer error: {msg.error()}")
+            continue
+        
+        # Deserialize message
+        trade = json.loads(msg.value().decode('utf-8'))
+        logger.info(f"Received trade: {trade}")
 
         enriched_trade = validate_and_enrich(trade)
         if enriched_trade:
             # Send to enriched-trades topic
-            future = producer.send("enriched-trades", enriched_trade)
-            producer.flush()  # Ensure message is sent immediately
-            print(f"✅ Sent enriched trade: {enriched_trade}")
+            producer.produce(
+                topic=TOPIC_ENRICHED_TRADES,
+                value=json.dumps(enriched_trade).encode('utf-8'),
+                callback=delivery_report
+            )
+            producer.poll(0)  # Trigger delivery callbacks
+            logger.info(f"Sent enriched trade: trade_id={enriched_trade['trade_id']}, symbol={enriched_trade['symbol']}")
 
 except KeyboardInterrupt:
-    print("Stopping validation consumer...")
+    logger.info("Stopping validation consumer...")
 finally:
-    producer.close()
+    producer.flush()
     consumer.close()
+    logger.info("Consumer closed")

@@ -1,26 +1,35 @@
-from kafka import KafkaConsumer
+import sys
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
+
+from confluent_kafka import Consumer
 import json
 import csv
-import pathlib
 import datetime
 from collections import defaultdict
 
-# Paths
-REPORTS_DIR = pathlib.Path(__file__).parent.parent / "reports"
-REPORTS_DIR.mkdir(exist_ok=True)  # ensure reports folder exists
-
-# Kafka setup
-BOOTSTRAP_SERVERS = "localhost:9092"
-TOPIC = "reports"
-
-consumer = KafkaConsumer(
-    TOPIC,
-    bootstrap_servers=BOOTSTRAP_SERVERS,
-    auto_offset_reset="latest",
-    value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-    group_id="reporting_group",
-    enable_auto_commit=True
+from config import (
+    setup_logger,
+    get_consumer_config,
+    REPORTS_DIR,
+    TOPIC_REPORTS,
+    CONSUMER_GROUP_REPORTING,
+    CONSUMER_ID_REPORTING
 )
+
+# Setup logger
+logger = setup_logger("reporting", "reporting.log")
+
+# Consumer configuration
+consumer_conf = get_consumer_config(
+    group_id=CONSUMER_GROUP_REPORTING,
+    client_id=CONSUMER_ID_REPORTING,
+    auto_offset_reset="latest"
+)
+
+# Create Consumer instance
+consumer = Consumer(consumer_conf)
+consumer.subscribe([TOPIC_REPORTS])
 
 # Report storage for aggregation
 daily_summary = defaultdict(list)
@@ -34,7 +43,7 @@ def save_to_csv(filename, data, headers):
         writer = csv.DictWriter(f, fieldnames=headers)
         writer.writeheader()
         writer.writerows(data)
-    print(f"💾 Saved report to: {filepath}")
+    logger.info(f"Saved report to: {filepath}")
 
 def generate_console_report(report_data):
     """Generate formatted console output"""
@@ -42,39 +51,38 @@ def generate_console_report(report_data):
     timestamp = report_data.get("timestamp", "")
     data = report_data.get("data", {})
     
-    print(f"\n{'='*60}")
-    print(f"📊 {report_type.upper()} REPORT - {timestamp[:19]}")
-    print(f"{'='*60}")
+    logger.info(f"{'='*60}")
+    logger.info(f"{report_type.upper()} REPORT - {timestamp[:19]}")
+    logger.info(f"{'='*60}")
     
     if report_type == "positions":
-        print("📈 CURRENT POSITIONS:")
+        logger.info("CURRENT POSITIONS:")
         for symbol, position in data.get("positions", {}).items():
             status = "LONG" if position > 0 else "SHORT" if position < 0 else "FLAT"
-            print(f"  {symbol:>6}: {position:>8} shares ({status})")
-        print(f"\n🔢 Total Symbols: {data.get('total_symbols', 0)}")
-        print(f"⚖️  Net Position: {data.get('net_positions', 0):>8} shares")
+            logger.info(f"  {symbol:>6}: {position:>8} shares ({status})")
+        logger.info(f"Total Symbols: {data.get('total_symbols', 0)}")
+        logger.info(f"Net Position: {data.get('net_positions', 0):>8} shares")
     
     elif report_type == "pnl":
-        print("💰 PROFIT & LOSS:")
+        logger.info("PROFIT & LOSS:")
         for symbol, symbol_pnl in data.get("pnl_by_symbol", {}).items():
-            color = "🟢" if symbol_pnl >= 0 else "🔴"
-            print(f"  {symbol:>6}: {color} ${symbol_pnl:>10,.2f}")
+            status = "GAIN" if symbol_pnl >= 0 else "LOSS"
+            logger.info(f"  {symbol:>6}: ${symbol_pnl:>10,.2f} ({status})")
         
         total_pnl = data.get("total_pnl", 0)
-        pnl_color = "🟢" if total_pnl >= 0 else "🔴"
-        print(f"\n{pnl_color} TOTAL PnL: ${total_pnl:>10,.2f}")
-        print(f"📊 Total Volume: ${data.get('total_volume', 0):>10,.2f}")
-        print(f"📝 Trade Count: {data.get('trade_count', 0):>8}")
-        print(f"📏 Avg Trade Size: ${data.get('avg_trade_size', 0):>8,.2f}")
+        pnl_status = "GAIN" if total_pnl >= 0 else "LOSS"
+        logger.info(f"TOTAL PnL: ${total_pnl:>10,.2f} ({pnl_status})")
+        logger.info(f"Total Volume: ${data.get('total_volume', 0):>10,.2f}")
+        logger.info(f"Trade Count: {data.get('trade_count', 0):>8}")
+        logger.info(f"Avg Trade Size: ${data.get('avg_trade_size', 0):>8,.2f}")
     
     elif report_type == "trade_summary":
-        side_emoji = "🟢" if data.get("side") == "BUY" else "🔴"
-        print(f"🆔 Trade ID: {data.get('trade_id')}")
-        print(f"📊 Symbol: {data.get('symbol')}")
-        print(f"{side_emoji} Side: {data.get('side')} {data.get('quantity')} @ ${data.get('price')}")
-        print(f"💵 Trade Value: ${data.get('trade_value', 0):,.2f}")
-        print(f"📈 Current Position: {data.get('current_position', 0)} shares")
-        print(f"💰 Symbol PnL: ${data.get('symbol_pnl', 0):,.2f}")
+        logger.info(f"Trade ID: {data.get('trade_id')}")
+        logger.info(f"Symbol: {data.get('symbol')}")
+        logger.info(f"Side: {data.get('side')} {data.get('quantity')} @ ${data.get('price')}")
+        logger.info(f"Trade Value: ${data.get('trade_value', 0):,.2f}")
+        logger.info(f"Current Position: {data.get('current_position', 0)} shares")
+        logger.info(f"Symbol PnL: ${data.get('symbol_pnl', 0):,.2f}")
 
 def save_daily_reports():
     """Save accumulated data to daily CSV files"""
@@ -116,15 +124,25 @@ def save_daily_reports():
                 })
         save_to_csv(pnl_filename, pnl_data, headers)
 
-print("📋 Reporting Consumer started... Listening for reports on 'reports' topic.")
-print(f"📁 Reports will be saved to: {REPORTS_DIR}")
-print("💡 Waiting for reports...")
+logger.info(f"Reporting Consumer started [ID: {CONSUMER_ID_REPORTING}]")
+logger.info(f"Consuming from: {TOPIC_REPORTS}")
+logger.info(f"Reports will be saved to: {REPORTS_DIR}")
 
 try:
     report_count = 0
-    for msg in consumer:
+    while True:
+        msg = consumer.poll(timeout=1.0)
+        
+        if msg is None:
+            continue
+        
+        if msg.error():
+            logger.error(f"Consumer error: {msg.error()}")
+            continue
+        
         report_count += 1
-        report_data = msg.value
+        # Deserialize message
+        report_data = json.loads(msg.value().decode('utf-8'))
         
         # Display console report
         generate_console_report(report_data)
@@ -138,14 +156,15 @@ try:
         
         # Auto-save CSV files every 5 reports
         if report_count % 5 == 0:
-            print(f"\n💾 Auto-saving reports after {report_count} messages...")
+            logger.info(f"Auto-saving reports after {report_count} messages...")
             save_daily_reports()
-            print("✅ CSV files updated!")
+            logger.info("CSV files updated!")
 
 except KeyboardInterrupt:
-    print("\n🛑 Stopping reporting consumer...")
-    print("💾 Saving final reports...")
+    logger.info("Stopping reporting consumer...")
+    logger.info("Saving final reports...")
     save_daily_reports()
-    print("✅ All reports saved!")
+    logger.info("All reports saved!")
 finally:
     consumer.close()
+    logger.info("Consumer closed")

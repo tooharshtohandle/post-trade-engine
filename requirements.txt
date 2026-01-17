@@ -1,0 +1,16 @@
+# Post-Trade Engine Requirements
+# Python dependencies for the Kafka-based post-trade processing system
+
+# Kafka client library (Confluent)
+confluent-kafka>=2.3.0
+
+# No additional dependencies required - all other imports are from Python standard library:
+# - json
+# - sqlite3
+# - pathlib
+# - datetime
+# - logging
+# - csv
+# - collections
+# - time
+# - random
