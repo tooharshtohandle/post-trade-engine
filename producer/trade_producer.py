@@ -40,7 +40,6 @@ for i in range(250):
         "trade_id": i + 1,
         "symbol": random.choice(symbols),
         "quantity": random.randint(10, 500),
-        "quantity": random.randint(10, 500),
         "price": round(random.uniform(100, 500), 2),
         "side": random.choice(["BUY", "SELL"])
     }
@@ -60,6 +59,6 @@ for i in range(250):
     time.sleep(1)
 
 # Wait for all messages to be delivered
-print("Flushing messages...")
+logger.info("Flushing messages...")
 producer.flush()
 logger.info("All trades produced successfully")
