@@ -43,6 +43,21 @@ PRODUCER_ID_TRADE = "trade-producer-01"
 PRODUCER_ID_ENRICHMENT = "enrichment-producer-01"
 PRODUCER_ID_PNL_RISK = "pnl-risk-producer-01"
 
+
+# =============================================================================
+# BENCHMARKING CONFIGURATION
+# =============================================================================
+BENCHMARK_DIR = BASE_DIR / "benchmarking"
+BENCHMARK_RESULTS_DIR = BENCHMARK_DIR / "results"
+
+# Ensure benchmarking directories exist
+BENCHMARK_RESULTS_DIR.mkdir(exist_ok=True, parents=True)
+
+# Benchmark defaults
+BENCHMARK_PRODUCER_ID = "benchmark-producer-01"
+DEFAULT_BENCHMARK_TPS = 5000
+DEFAULT_BENCHMARK_DURATION = 60  # seconds
+
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
