@@ -77,7 +77,7 @@ post-trade-engine/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/post-trade-engine.git
+   git clone https://github.com/tooharshtohandle/post-trade-engine.git
    cd post-trade-engine
    ```
 
