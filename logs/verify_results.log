@@ -23,3 +23,6 @@
 2026-01-23 14:48:34 | verify_results | INFO | Success Rate: 2.275%
 2026-01-23 14:48:34 | verify_results | INFO | ============================================================
 2026-01-23 14:48:34 | verify_results | INFO | Report saved to: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\verification_report_20260123_144834.json
+2026-01-23 15:11:49 | verify_results | INFO | Using latest benchmark file: benchmark_run_20260123_151144.json
+2026-01-23 15:11:49 | verify_results | INFO | Loaded benchmark data from: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\benchmark_run_20260123_151144.json
+2026-01-23 15:11:50 | verify_results | INFO | Loaded 640300 trades from database

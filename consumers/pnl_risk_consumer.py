@@ -22,6 +22,12 @@ from config import (
 # Setup logger
 logger = setup_logger("pnl_risk", "pnl_risk.log")
 
+# ============================================================================
+# BATCH CONFIGURATION - Tune these for performance
+# ============================================================================
+BATCH_SIZE = 100  # Commit every N trades (increase for higher throughput)
+REPORT_BATCH_SIZE = 50  # Send reports every N trades (reduce Kafka overhead)
+
 # Consumer configuration
 consumer_conf = get_consumer_config(
     group_id=CONSUMER_GROUP_PNL_RISK,
@@ -44,9 +50,25 @@ def delivery_report(err, msg):
     if err is not None:
         logger.error(f"Report delivery failed: {err}")
 
-# SQLite DB setup
+# ============================================================================
+# SQLite DB Setup with WAL Mode and Performance Optimizations
+# ============================================================================
 conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()
+
+# Enable WAL mode for better concurrency and performance
+logger.info("Enabling SQLite optimizations...")
+cur.execute("PRAGMA journal_mode=WAL")
+cur.execute("PRAGMA synchronous=NORMAL")  # Trade some durability for speed
+cur.execute("PRAGMA cache_size=-64000")  # 64MB cache
+cur.execute("PRAGMA temp_store=MEMORY")  # Store temp tables in memory
+cur.execute("PRAGMA mmap_size=268435456")  # 256MB memory-mapped I/O
+
+# Log the active mode
+wal_mode = cur.execute("PRAGMA journal_mode").fetchone()[0]
+sync_mode = cur.execute("PRAGMA synchronous").fetchone()[0]
+logger.info(f"SQLite journal_mode: {wal_mode}")
+logger.info(f"SQLite synchronous: {sync_mode}")
 
 # Drop the existing table if it exists (to handle schema changes)
 cur.execute("DROP TABLE IF EXISTS trades")
@@ -65,10 +87,16 @@ CREATE TABLE trades (
     processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
-conn.commit()
-logger.info("Database table created/recreated with correct schema")
 
+# Create index for faster symbol queries (optional, adds slight overhead on insert)
+# cur.execute("CREATE INDEX IF NOT EXISTS idx_symbol ON trades(symbol)")
+
+conn.commit()
+logger.info("Database table created/recreated with correct schema and optimizations enabled")
+
+# ============================================================================
 # Running positions and PnL
+# ============================================================================
 positions = {}
 pnl = {}
 total_volume = 0
@@ -120,13 +148,31 @@ def generate_trade_summary_report(trade):
 
 logger.info(f"PnL + Risk Consumer started [ID: {CONSUMER_ID_PNL_RISK}]")
 logger.info(f"Consuming from: {TOPIC_ENRICHED_TRADES} -> Publishing to: {TOPIC_REPORTS}")
+logger.info(f"Batch Configuration: DB Batch={BATCH_SIZE}, Report Batch={REPORT_BATCH_SIZE}")
+
+# ============================================================================
+# Batching Variables
+# ============================================================================
+trade_batch = []  # Accumulate trades for batch insert
+message_count = 0
+last_commit_count = 0
 
 try:
-    message_count = 0
     while True:
         msg = consumer.poll(timeout=1.0)
         
         if msg is None:
+            # No message received, check if we have pending batch
+            if trade_batch:
+                # Commit any remaining trades in batch
+                cur.executemany("""
+                    INSERT OR IGNORE INTO trades 
+                    (trade_id, symbol, quantity, price, side, trade_value, validated_at, counterparty)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, trade_batch)
+                conn.commit()
+                logger.info(f"Committed final batch of {len(trade_batch)} trades")
+                trade_batch = []
             continue
         
         if msg.error():
@@ -134,15 +180,13 @@ try:
             continue
         
         message_count += 1
+        
         # Deserialize message
         trade = json.loads(msg.value().decode('utf-8'))
-        logger.info(f"Received enriched trade #{message_count}: trade_id={trade.get('trade_id')}, symbol={trade.get('symbol')}")
+        logger.debug(f"Received enriched trade #{message_count}: trade_id={trade.get('trade_id')}, symbol={trade.get('symbol')}")
 
-        # Insert trade into DB
-        cur.execute("""
-            INSERT OR IGNORE INTO trades (trade_id, symbol, quantity, price, side, trade_value, validated_at, counterparty)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
+        # Add trade to batch (as tuple for executemany)
+        trade_tuple = (
             trade.get("trade_id"),
             trade.get("symbol"),
             trade.get("quantity"),
@@ -151,10 +195,10 @@ try:
             trade.get("trade_value"),
             trade.get("validated_at"),
             trade.get("counterparty")
-        ))
-        conn.commit()
+        )
+        trade_batch.append(trade_tuple)
 
-        # Update positions and PnL
+        # Update positions and PnL (in memory, immediately)
         symbol = trade["symbol"]
         qty = trade["quantity"] if trade["side"] == "BUY" else -trade["quantity"]
         positions[symbol] = positions.get(symbol, 0) + qty
@@ -163,44 +207,59 @@ try:
         # Update global metrics
         total_volume += trade["trade_value"]
         trade_count += 1
+
+        # Batch commit when batch size is reached
+        if len(trade_batch) >= BATCH_SIZE:
+            # Batch insert all trades at once
+            cur.executemany("""
+                INSERT OR IGNORE INTO trades 
+                (trade_id, symbol, quantity, price, side, trade_value, validated_at, counterparty)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, trade_batch)
+            conn.commit()
+            
+            logger.info(f"Batch committed: {len(trade_batch)} trades | Total processed: {message_count}")
+            last_commit_count = message_count
+            trade_batch = []  # Clear batch
         
-        
-        # Generate and send reports to Kafka
-        # 1. Trade summary report (for each trade)
-        trade_report = generate_trade_summary_report(trade)
-        report_producer.produce(
-            topic=TOPIC_REPORTS,
-            value=json.dumps(trade_report).encode('utf-8'),
-            callback=delivery_report
-        )
-        
-        # 2. Position report (every trade)
-        position_report = generate_position_report()
-        report_producer.produce(
-            topic=TOPIC_REPORTS,
-            value=json.dumps(position_report).encode('utf-8'),
-            callback=delivery_report
-        )
-        
-        # 3. PnL report (every 3 trades or can be customized)
-        if message_count % 3 == 0:
+        # Generate and send reports (less frequently to reduce overhead)
+        if message_count % REPORT_BATCH_SIZE == 0:
+            # Send comprehensive reports every N trades
+            
+            # Position report
+            position_report = generate_position_report()
+            report_producer.produce(
+                topic=TOPIC_REPORTS,
+                value=json.dumps(position_report).encode('utf-8'),
+                callback=delivery_report
+            )
+            
+            # PnL report
             pnl_report = generate_pnl_report()
             report_producer.produce(
                 topic=TOPIC_REPORTS,
                 value=json.dumps(pnl_report).encode('utf-8'),
                 callback=delivery_report
             )
-            logger.info("Sent comprehensive PnL report to Kafka")
-        
-        # Trigger delivery callbacks and flush reports
-        report_producer.poll(0)
-        report_producer.flush()
-        logger.info(f"Reports sent to Kafka topic '{TOPIC_REPORTS}'")
+            
+            # Trigger delivery callbacks
+            report_producer.poll(0)
+            logger.info(f"Sent position & PnL reports (trade #{message_count})")
 
 except KeyboardInterrupt:
     logger.info("Stopping consumer...")
 finally:
+    # Commit any remaining trades in batch
+    if trade_batch:
+        cur.executemany("""
+            INSERT OR IGNORE INTO trades 
+            (trade_id, symbol, quantity, price, side, trade_value, validated_at, counterparty)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, trade_batch)
+        conn.commit()
+        logger.info(f"Final commit: {len(trade_batch)} trades")
+    
     report_producer.flush()
     consumer.close()
     conn.close()
-    logger.info("Consumer closed")
+    logger.info(f"Consumer closed - Total trades processed: {message_count}")

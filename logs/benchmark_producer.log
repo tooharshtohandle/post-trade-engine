@@ -35,3 +35,21 @@
 2026-01-23 14:48:29 | benchmark_producer | INFO | Peak TPS (calc):   22,651.73 (estimated)
 2026-01-23 14:48:29 | benchmark_producer | INFO | ============================================================
 2026-01-23 14:48:29 | benchmark_producer | INFO | Results saved to: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\benchmark_run_20260123_144829.json
+2026-01-23 15:11:42 | benchmark_producer | INFO | ============================================================
+2026-01-23 15:11:42 | benchmark_producer | INFO | BENCHMARK PRODUCER STARTING
+2026-01-23 15:11:42 | benchmark_producer | INFO | ============================================================
+2026-01-23 15:11:42 | benchmark_producer | INFO | Mode: Total Trades = 100,000
+2026-01-23 15:11:42 | benchmark_producer | INFO | Kafka Topic: trades
+2026-01-23 15:11:42 | benchmark_producer | INFO | ============================================================
+2026-01-23 15:11:44 | benchmark_producer | INFO | Flushing remaining messages...
+2026-01-23 15:11:44 | benchmark_producer | INFO | ============================================================
+2026-01-23 15:11:44 | benchmark_producer | INFO | BENCHMARK COMPLETE
+2026-01-23 15:11:44 | benchmark_producer | INFO | ============================================================
+2026-01-23 15:11:44 | benchmark_producer | INFO | Duration:          2.20 seconds
+2026-01-23 15:11:44 | benchmark_producer | INFO | Trades Sent:       100,000
+2026-01-23 15:11:44 | benchmark_producer | INFO | Trades Acked:      100,000
+2026-01-23 15:11:44 | benchmark_producer | INFO | Failed Trades:     0
+2026-01-23 15:11:44 | benchmark_producer | INFO | Average TPS:       45,488.40
+2026-01-23 15:11:44 | benchmark_producer | INFO | Peak TPS (calc):   50,037.24 (estimated)
+2026-01-23 15:11:44 | benchmark_producer | INFO | ============================================================
+2026-01-23 15:11:44 | benchmark_producer | INFO | Results saved to: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\benchmark_run_20260123_151144.json

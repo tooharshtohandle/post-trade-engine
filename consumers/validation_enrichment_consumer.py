@@ -132,7 +132,7 @@ try:
             # Flush when batch size is reached
             if pending_messages >= PRODUCER_BATCH_SIZE:
                 producer.flush()
-                logger.info(f"✅ Flushed batch: {pending_messages} trades | Total processed: {trades_processed}")
+                logger.info(f"Flushed batch: {pending_messages} trades | Total processed: {trades_processed}")
                 pending_messages = 0
                 last_flush_time = datetime.datetime.utcnow()
         else:

@@ -800,3 +800,32 @@
 2026-01-23 14:59:01 | metrics_collector | INFO | Average TPS: 172.07
 2026-01-23 14:59:01 | metrics_collector | INFO | Peak TPS: 285.00
 2026-01-23 14:59:01 | metrics_collector | INFO | ============================================================
+2026-01-23 15:11:37 | metrics_collector | INFO | Metrics Collector started
+2026-01-23 15:11:37 | metrics_collector | INFO | Monitoring database: C:\Users\Harsh\Desktop\post-trade-engine\db\trades.db
+2026-01-23 15:11:37 | metrics_collector | INFO | Update interval: 1.0s
+2026-01-23 15:11:37 | metrics_collector | INFO | Elapsed: 0.0s | Total: 94,400 | Current TPS: 94,400 | Avg TPS: 94,400
+2026-01-23 15:11:38 | metrics_collector | INFO | Elapsed: 1.1s | Total: 150,900 | Current TPS: 56,500 | Avg TPS: 75,450
+2026-01-23 15:11:39 | metrics_collector | INFO | Elapsed: 2.1s | Total: 207,900 | Current TPS: 57,000 | Avg TPS: 69,300
+2026-01-23 15:11:40 | metrics_collector | INFO | Elapsed: 3.2s | Total: 266,500 | Current TPS: 58,600 | Avg TPS: 66,625
+2026-01-23 15:11:41 | metrics_collector | INFO | Elapsed: 4.2s | Total: 325,400 | Current TPS: 58,900 | Avg TPS: 65,080
+2026-01-23 15:11:42 | metrics_collector | INFO | Elapsed: 5.3s | Total: 378,100 | Current TPS: 52,700 | Avg TPS: 63,017
+2026-01-23 15:11:44 | metrics_collector | INFO | Elapsed: 6.4s | Total: 411,800 | Current TPS: 33,700 | Avg TPS: 58,829
+2026-01-23 15:11:45 | metrics_collector | INFO | Elapsed: 7.5s | Total: 449,500 | Current TPS: 37,700 | Avg TPS: 56,188
+2026-01-23 15:11:46 | metrics_collector | INFO | Elapsed: 8.7s | Total: 496,200 | Current TPS: 46,700 | Avg TPS: 55,133
+2026-01-23 15:11:47 | metrics_collector | INFO | Elapsed: 9.8s | Total: 543,100 | Current TPS: 46,900 | Avg TPS: 54,310
+2026-01-23 15:11:48 | metrics_collector | INFO | Elapsed: 10.9s | Total: 590,900 | Current TPS: 47,800 | Avg TPS: 53,718
+2026-01-23 15:11:49 | metrics_collector | INFO | Elapsed: 12.0s | Total: 648,000 | Current TPS: 57,100 | Avg TPS: 54,000
+2026-01-23 15:11:50 | metrics_collector | INFO | Elapsed: 13.1s | Total: 691,300 | Current TPS: 43,300 | Avg TPS: 53,177
+2026-01-23 15:11:51 | metrics_collector | INFO | Elapsed: 14.3s | Total: 738,400 | Current TPS: 47,100 | Avg TPS: 52,743
+2026-01-23 15:11:53 | metrics_collector | INFO | Elapsed: 15.4s | Total: 741,980 | Current TPS: 3,580 | Avg TPS: 49,465
+2026-01-23 15:11:54 | metrics_collector | INFO | Elapsed: 16.6s | Total: 741,980 | Current TPS: 0 | Avg TPS: 46,374
+2026-01-23 15:11:55 | metrics_collector | INFO | Elapsed: 17.7s | Total: 741,980 | Current TPS: 0 | Avg TPS: 43,646
+2026-01-23 15:11:56 | metrics_collector | INFO | Elapsed: 18.8s | Total: 741,980 | Current TPS: 0 | Avg TPS: 41,221
+2026-01-23 15:11:57 | metrics_collector | INFO | Elapsed: 19.9s | Total: 741,980 | Current TPS: 0 | Avg TPS: 39,052
+2026-01-23 15:11:57 | metrics_collector | INFO | ============================================================
+2026-01-23 15:11:57 | metrics_collector | INFO | FINAL SUMMARY
+2026-01-23 15:11:57 | metrics_collector | INFO | Total Monitoring Time: 20.22s
+2026-01-23 15:11:57 | metrics_collector | INFO | Total Trades: 741,980
+2026-01-23 15:11:57 | metrics_collector | INFO | Average TPS: 39,051.58
+2026-01-23 15:11:57 | metrics_collector | INFO | Peak TPS: 94,400.00
+2026-01-23 15:11:57 | metrics_collector | INFO | ============================================================
