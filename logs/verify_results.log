@@ -1,0 +1,25 @@
+2026-01-23 13:55:02 | verify_results | ERROR | No benchmark files found in C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results
+2026-01-23 14:41:40 | verify_results | INFO | Using latest benchmark file: benchmark_run_20260123_144134.json
+2026-01-23 14:41:40 | verify_results | INFO | Loaded benchmark data from: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\benchmark_run_20260123_144134.json
+2026-01-23 14:41:40 | verify_results | INFO | Loaded 4398 trades from database
+2026-01-23 14:41:41 | verify_results | INFO | ============================================================
+2026-01-23 14:41:41 | verify_results | INFO | VERIFICATION RESULTS
+2026-01-23 14:41:41 | verify_results | INFO | Total Sent: 770,574
+2026-01-23 14:41:41 | verify_results | INFO | Total in DB: 4,398
+2026-01-23 14:41:41 | verify_results | INFO | Missing: 766,176
+2026-01-23 14:41:41 | verify_results | INFO | Duplicates: 0
+2026-01-23 14:41:41 | verify_results | INFO | Success Rate: 0.571%
+2026-01-23 14:41:41 | verify_results | INFO | ============================================================
+2026-01-23 14:41:41 | verify_results | INFO | Report saved to: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\verification_report_20260123_144141.json
+2026-01-23 14:48:34 | verify_results | INFO | Using latest benchmark file: benchmark_run_20260123_144829.json
+2026-01-23 14:48:34 | verify_results | INFO | Loaded benchmark data from: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\benchmark_run_20260123_144829.json
+2026-01-23 14:48:34 | verify_results | INFO | Loaded 2275 trades from database
+2026-01-23 14:48:34 | verify_results | INFO | ============================================================
+2026-01-23 14:48:34 | verify_results | INFO | VERIFICATION RESULTS
+2026-01-23 14:48:34 | verify_results | INFO | Total Sent: 100,000
+2026-01-23 14:48:34 | verify_results | INFO | Total in DB: 2,275
+2026-01-23 14:48:34 | verify_results | INFO | Missing: 97,725
+2026-01-23 14:48:34 | verify_results | INFO | Duplicates: 0
+2026-01-23 14:48:34 | verify_results | INFO | Success Rate: 2.275%
+2026-01-23 14:48:34 | verify_results | INFO | ============================================================
+2026-01-23 14:48:34 | verify_results | INFO | Report saved to: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\verification_report_20260123_144834.json

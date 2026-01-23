@@ -1,0 +1,37 @@
+2026-01-23 14:41:04 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:41:04 | benchmark_producer | INFO | BENCHMARK PRODUCER STARTING
+2026-01-23 14:41:04 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:41:04 | benchmark_producer | INFO | Mode: Duration = 30 seconds
+2026-01-23 14:41:04 | benchmark_producer | INFO | Target TPS: MAXIMUM (no throttling)
+2026-01-23 14:41:04 | benchmark_producer | INFO | Kafka Topic: trades
+2026-01-23 14:41:04 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:41:34 | benchmark_producer | INFO | Flushing remaining messages...
+2026-01-23 14:41:34 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:41:34 | benchmark_producer | INFO | BENCHMARK COMPLETE
+2026-01-23 14:41:34 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:41:34 | benchmark_producer | INFO | Duration:          30.00 seconds
+2026-01-23 14:41:34 | benchmark_producer | INFO | Trades Sent:       770,574
+2026-01-23 14:41:34 | benchmark_producer | INFO | Trades Acked:      770,574
+2026-01-23 14:41:34 | benchmark_producer | INFO | Failed Trades:     0
+2026-01-23 14:41:34 | benchmark_producer | INFO | Average TPS:       25,683.06
+2026-01-23 14:41:34 | benchmark_producer | INFO | Peak TPS (calc):   28,251.36 (estimated)
+2026-01-23 14:41:34 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:41:35 | benchmark_producer | INFO | Results saved to: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\benchmark_run_20260123_144134.json
+2026-01-23 14:48:24 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:48:24 | benchmark_producer | INFO | BENCHMARK PRODUCER STARTING
+2026-01-23 14:48:24 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:48:24 | benchmark_producer | INFO | Mode: Total Trades = 100,000
+2026-01-23 14:48:24 | benchmark_producer | INFO | Kafka Topic: trades
+2026-01-23 14:48:24 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:48:29 | benchmark_producer | INFO | Flushing remaining messages...
+2026-01-23 14:48:29 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:48:29 | benchmark_producer | INFO | BENCHMARK COMPLETE
+2026-01-23 14:48:29 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:48:29 | benchmark_producer | INFO | Duration:          4.86 seconds
+2026-01-23 14:48:29 | benchmark_producer | INFO | Trades Sent:       100,000
+2026-01-23 14:48:29 | benchmark_producer | INFO | Trades Acked:      100,000
+2026-01-23 14:48:29 | benchmark_producer | INFO | Failed Trades:     0
+2026-01-23 14:48:29 | benchmark_producer | INFO | Average TPS:       20,592.48
+2026-01-23 14:48:29 | benchmark_producer | INFO | Peak TPS (calc):   22,651.73 (estimated)
+2026-01-23 14:48:29 | benchmark_producer | INFO | ============================================================
+2026-01-23 14:48:29 | benchmark_producer | INFO | Results saved to: C:\Users\Harsh\Desktop\post-trade-engine\benchmarking\results\benchmark_run_20260123_144829.json
